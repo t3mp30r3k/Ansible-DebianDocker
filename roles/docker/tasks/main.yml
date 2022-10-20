@@ -1,28 +1,33 @@
 ---
-  - name: fetch docker apt key
-    shell: curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
 
-  - name: Add docker repository
-    shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu focal stable
+    state: present
 
-  - name: Refresh cache
-    apt:
-    update_cache: yes
-  - name: Update distro
-    apt:
-    name: "*"
+- name: Update apt and install docker-ce
+  apt:
+    name: docker-ce
     state: latest
-  - name: Update all packages to the latest version
-    apt:
-    upgrade: dist    
-  - name: install packets (2)
-    apt:
-    name:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
-  - name: install docker compose    
-    get_url:
-    url: https://github.com/docker/compose/releases/download/1.27.3/docker-compose-Linux-x86_64
-    dest: /usr/local/bin/docker-compose
-    mode: 755
+    update_cache: true
+
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: Pull default Docker image
+  community.docker.docker_image:
+    name: "{{ default_container_image }}"
+    source: pull
+
+- name: Create default containers
+  community.docker.docker_container:
+    name: "{{ default_container_name }}{{ item }}"
+    image: "{{ default_container_image }}"
+    command: "{{ default_container_command }}"
+    state: present
+  with_sequence: count={{ container_count }}
